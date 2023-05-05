@@ -15,3 +15,13 @@ spec:
                 name: todo-api
                 port:
                   name: http
+    - host: jaeger.127.0.0.1.nip.io
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: jaeger-query
+                port:
+                  name: http-query

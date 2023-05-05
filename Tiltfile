@@ -1,7 +1,19 @@
 load('ext://ko', 'ko_build')
 load('ext://restart_process', 'docker_build_with_restart')
+load('ext://helm_resource', 'helm_resource', 'helm_repo')
 
 allow_k8s_contexts('docker-desktop')
+
+#$ helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+helm_repo('jaegertracing', 'https://jaegertracing.github.io/helm-charts')
+helm_resource('jaeger', 'jaegertracing/jaeger', deps=['jaegertracing'], flags=[
+    '--set', 'allInOne.enabled=true',
+    '--set', 'provisionDataStore.cassandra=false',
+    '--set', 'storage.type=none',
+    '--set', 'agent.enabled=false',
+    '--set', 'collector.enabled=false',
+    '--set', 'query.enabled=false',
+    ] )
 
 local_resource(
   'todo-api-bin',
