@@ -10,4 +10,4 @@ labels:
   - includeSelectors: true
     includeTemplates: true
     pairs:
-      app.kubernetes.io/name: todo-api
+      app.kubernetes.io/name: todo

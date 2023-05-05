@@ -20,7 +20,7 @@ func NewTracer(url string) (*tracesdk.TracerProvider, error) {
 		// Record information about this application in a Resource.
 		tracesdk.WithResource(resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName("todo-api"),
+			semconv.ServiceName("todo-api-app"),
 			attribute.String("environment", "development"),
 			attribute.Int64("ID", 42),
 		)),

@@ -32,6 +32,20 @@ docker_build_with_restart(
     sync('./bin', '/app/bin')
   ]
 )
+docker_build(
+    'todo-app-image',
+    context='./todo-app',
+    ignore=['./todo-app/dist/', './todo-app/node_modules/'],
+    
+    live_update=[
+        fall_back_on('./todo-app/vite.config.js'),
+        sync('./todo-app/', '/app/'),
+        run(
+            'npm ci',
+            trigger=['./todo-app/package.json', './todo-app/package-lock.json']
+        )
+    ]
+)
 
-k8s_yaml(kustomize('manifests/local'))
+k8s_yaml(kustomize('manifests'))
 k8s_resource('todo-api', resource_deps=['todo-api-bin'])

@@ -5,14 +5,21 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: todo-api.127.0.0.1.nip.io
+    - host: todo.127.0.0.1.nip.io
       http:
         paths:
+          - pathType: Prefix
+            path: "/api"
+            backend:
+              service:
+                name: todo-api
+                port:
+                  name: http
           - pathType: Prefix
             path: "/"
             backend:
               service:
-                name: todo-api
+                name: todo-app
                 port:
                   name: http
     - host: jaeger.127.0.0.1.nip.io
