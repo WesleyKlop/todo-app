@@ -55,19 +55,11 @@ func saveExistingTodos(db *[]todos.Todo) error {
 	return nil
 }
 
-func getLogger() *zap.Logger {
-	builder := zap.NewDevelopmentConfig()
-	builder.Encoding = "console"
-
-	log, _ := builder.Build()
-	return log
-}
-
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	router := gin.New()
 
-	log := getLogger()
+	log, _ := zap.NewDevelopment()
 	defer log.Sync()
 
 	router.Use(ginzap.Ginzap(log, time.RFC3339, false))
@@ -84,6 +76,16 @@ func main() {
 
 	router.GET("/api/todos", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, db)
+	})
+	router.GET("/api/todos/:todo", func(ctx *gin.Context) {
+		todoId := ctx.Param("todo")
+		for _, todo := range *db {
+			if todo.Id == todoId {
+				ctx.JSON(http.StatusOK, todo)
+				return
+			}
+		}
+		ctx.AbortWithStatus(http.StatusNotFound)
 	})
 	router.POST("/api/todos", func(ctx *gin.Context) {
 		var todo todos.RawTodo
