@@ -18,7 +18,7 @@ func NewTodoRepository() *TodoRepository {
 }
 
 func getSpan(ctx context.Context, action string) trace.Span {
-	tr := otel.Tracer("repository")
+	tr := otel.Tracer("")
 	_, span := tr.Start(ctx, action)
 	return span
 }

@@ -31,7 +31,7 @@ local_resource(
     deps = ["./cmd", "./internal"],
 )
 
-# ko_build('todo-api', './cmd/app', deps=['./cmd', './internal'])
+# ko_build('todo-api-image', './cmd/app', deps=['./cmd', './internal'])
 docker_build_with_restart(
     "todo-api-image",
     ".",
