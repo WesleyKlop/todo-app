@@ -29,7 +29,7 @@ func main() {
 	}
 	otel.SetTracerProvider(tracer)
 
-	repository, err := todos.LoadFromFile("/mnt/data/todos.json")
+	repository, err := todos.LoadFromFile(ctx, "/mnt/data/todos.json")
 	if err != nil {
 		log.Fatal("Failed to create todo repository", zap.Error(err))
 	}
@@ -58,12 +58,12 @@ func main() {
 	stop()
 
 	log.Info("shutting down gracefully... saving todos...")
-	todos.PersistToFile(repository, "/mnt/data/todos.json")
+	todos.PersistToFile(ctx, repository, "/mnt/data/todos.json")
 
 	shutdownTime := 5 * time.Second
 	if mode, exists := os.LookupEnv("MODE"); exists && mode == "development" {
 		log.Info("skipping graceful shutdown")
-		shutdownTime = 1 * time.Second
+		shutdownTime = 0 * time.Second
 	}
 
 	// Give Gin 5 seconds to handle inflight requests (Cloud Run gives us 10 before SIGKILL)

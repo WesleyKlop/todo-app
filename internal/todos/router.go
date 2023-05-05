@@ -9,10 +9,10 @@ import (
 
 func NewTodoRouter(router *gin.RouterGroup, repo *TodoRepository) *gin.RouterGroup {
 	router.GET("", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, repo.List())
+		ctx.JSON(http.StatusOK, repo.List(ctx))
 	})
 	router.GET("/:todo", func(ctx *gin.Context) {
-		todo := repo.Get(ctx.Param("todo"))
+		todo := repo.Get(ctx, ctx.Param("todo"))
 		if todo != nil {
 			ctx.JSON(http.StatusOK, todo)
 		} else {
@@ -25,17 +25,17 @@ func NewTodoRouter(router *gin.RouterGroup, repo *TodoRepository) *gin.RouterGro
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		newTodo := repo.Create(&todo)
+		newTodo := repo.Create(ctx, &todo)
 
 		ctx.Header("location", fmt.Sprintf("/api/todos/%s", newTodo.Id))
 		ctx.JSON(http.StatusCreated, gin.H{"status": "todo created"})
 	})
 	router.DELETE("", func(ctx *gin.Context) {
-		repo.Clear()
+		repo.Clear(ctx)
 		ctx.Status(http.StatusOK)
 	})
 	router.DELETE("/:todo", func(ctx *gin.Context) {
-		repo.Remove(ctx.Param("todo"))
+		repo.Remove(ctx, ctx.Param("todo"))
 		ctx.Status(http.StatusOK)
 	})
 	router.PATCH("/:todo", func(ctx *gin.Context) {
@@ -44,13 +44,13 @@ func NewTodoRouter(router *gin.RouterGroup, repo *TodoRepository) *gin.RouterGro
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		todo := repo.Get(ctx.Param("todo"))
+		todo := repo.Get(ctx, ctx.Param("todo"))
 		if todo == nil {
 			ctx.AbortWithStatus(http.StatusNotFound)
 			return
 		}
 		todo.Patch(patch)
-		repo.Update(*todo)
+		repo.Update(ctx, *todo)
 		ctx.JSON(http.StatusOK, todo)
 	})
 	return router
