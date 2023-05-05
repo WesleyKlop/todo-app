@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -98,8 +99,10 @@ func main() {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		*todoList = append(*todoList, todo.Create())
+		newTodo := todo.Create()
+		*todoList = append(*todoList, newTodo)
 
+		ctx.Header("location", fmt.Sprintf("/api/todos/%s", newTodo.Id))
 		ctx.JSON(http.StatusCreated, gin.H{"status": "todo created"})
 	})
 	router.DELETE("/api/todos", func(ctx *gin.Context) {
