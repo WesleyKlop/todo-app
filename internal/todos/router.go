@@ -20,12 +20,12 @@ func NewTodoRouter(router *gin.RouterGroup, repo *TodoRepository) *gin.RouterGro
 		}
 	})
 	router.POST("", func(ctx *gin.Context) {
-		var todo *RawTodo
-		if err := ctx.ShouldBindJSON(todo); err != nil {
+		var todo RawTodo
+		if err := ctx.ShouldBindJSON(&todo); err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		newTodo := repo.Create(todo)
+		newTodo := repo.Create(&todo)
 
 		ctx.Header("location", fmt.Sprintf("/api/todos/%s", newTodo.Id))
 		ctx.JSON(http.StatusCreated, gin.H{"status": "todo created"})

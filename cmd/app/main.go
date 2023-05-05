@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,69 +10,34 @@ import (
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/wesleyklop/todo-api/v2/internal/todos"
+	"github.com/wesleyklop/todo-api/v2/internal/tracing"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
-func readOrCreateExistingTodos() (list *[]todos.Todo, err error) {
-	const path = "/mnt/data/todos.json"
-
-	if _, err = os.Stat(path); err != nil {
-		err = os.WriteFile(path, []byte("[]"), 0644)
-		return
-	}
-
-	handle, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer handle.Close()
-
-	content, err := io.ReadAll(handle)
-	if err != nil {
-		return nil, err
-	}
-	if len(content) > 2 {
-		err = json.Unmarshal(content, &list)
-	} else {
-		tmp := make([]todos.Todo, 0)
-		list = &tmp
-	}
-
-	return
-}
-
-func saveExistingTodos(db *[]todos.Todo) error {
-	const path = "/mnt/data/todos.json"
-
-	handle, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer handle.Close()
-
-	content, err := json.Marshal(*db)
-	if err != nil {
-		return err
-	}
-	handle.Write(content)
-	return nil
-}
-
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	router := gin.New()
 
 	log, _ := zap.NewDevelopment()
 	defer log.Sync()
 
-	router.Use(ginzap.Ginzap(log, time.RFC3339, false))
-	router.Use(ginzap.RecoveryWithZap(log, true))
+	tracer, err := tracing.NewTracer("http://jaeger-collector.default.svc:14268/api/traces")
+	if err != nil {
+		log.Fatal("Failed to create tracer", zap.Error(err))
+	}
+	otel.SetTracerProvider(tracer)
 
 	repository, err := todos.LoadFromFile("/mnt/data/todos.json")
 	if err != nil {
 		log.Fatal("Failed to create todo repository", zap.Error(err))
 	}
+
+	router := gin.New()
+	router.Use(ginzap.Ginzap(log, time.RFC3339, false))
+	router.Use(ginzap.RecoveryWithZap(log, true))
+	router.Use(otelgin.Middleware("todo-api"))
 
 	todos.NewTodoRouter(router.Group("/api/todos"), repository)
 
@@ -107,7 +70,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTime)
 	defer cancel()
 	if err := service.Shutdown(ctx); err != nil {
-		log.Fatal("shutdown deadline exceeded.")
+		log.Fatal("shutdown deadline exceeded for server shutdown")
+	}
+	if err := tracer.Shutdown(ctx); err != nil {
+		log.Fatal("shutdown deadline exceeded for tracer shutdown")
 	}
 
 	log.Info("exiting")
