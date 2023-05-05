@@ -16,7 +16,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func readOrCreateExistingTodos() (todos *[]todos.Todo, err error) {
+func readOrCreateExistingTodos() (list *[]todos.Todo, err error) {
 	const path = "/mnt/data/todos.json"
 
 	if _, err = os.Stat(path); err != nil {
@@ -34,7 +34,13 @@ func readOrCreateExistingTodos() (todos *[]todos.Todo, err error) {
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(content, &todos)
+	if len(content) > 2 {
+		err = json.Unmarshal(content, &list)
+	} else {
+		tmp := make([]todos.Todo, 0)
+		list = &tmp
+	}
+
 	return
 }
 
@@ -47,7 +53,7 @@ func saveExistingTodos(db *[]todos.Todo) error {
 	}
 	defer handle.Close()
 
-	content, err := json.Marshal(db)
+	content, err := json.Marshal(*db)
 	if err != nil {
 		return err
 	}
@@ -65,21 +71,20 @@ func main() {
 	router.Use(ginzap.Ginzap(log, time.RFC3339, false))
 	router.Use(ginzap.RecoveryWithZap(log, true))
 
-	db, err := readOrCreateExistingTodos()
+	todoList, err := readOrCreateExistingTodos()
 	if err != nil {
-		log.Fatal("Failed to get or create todo db")
+		log.Fatal("Failed to get or create todo db", zap.Error(err))
 	}
 
 	router.GET("/ping", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "bas")
 	})
-
 	router.GET("/api/todos", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, db)
+		ctx.JSON(http.StatusOK, todoList)
 	})
 	router.GET("/api/todos/:todo", func(ctx *gin.Context) {
 		todoId := ctx.Param("todo")
-		for _, todo := range *db {
+		for _, todo := range *todoList {
 			if todo.Id == todoId {
 				ctx.JSON(http.StatusOK, todo)
 				return
@@ -93,9 +98,13 @@ func main() {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		*db = append(*db, todo.Create())
+		*todoList = append(*todoList, todo.Create())
 
 		ctx.JSON(http.StatusCreated, gin.H{"status": "todo created"})
+	})
+	router.DELETE("/api/todos", func(ctx *gin.Context) {
+		todoList = &[]todos.Todo{}
+		ctx.Status(http.StatusOK)
 	})
 
 	service := http.Server{
@@ -115,10 +124,16 @@ func main() {
 	stop()
 
 	log.Info("shutting down gracefully... saving todos...")
-	_ = saveExistingTodos(db)
+	_ = saveExistingTodos(todoList)
+
+	shutdownTime := 5 * time.Second
+	if mode, exists := os.LookupEnv("MODE"); exists && mode == "development" {
+		log.Info("skipping graceful shutdown")
+		shutdownTime = 1 * time.Second
+	}
 
 	// Give Gin 5 seconds to handle inflight requests (Cloud Run gives us 10 before SIGKILL)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTime)
 	defer cancel()
 	if err := service.Shutdown(ctx); err != nil {
 		log.Fatal("shutdown deadline exceeded.")
