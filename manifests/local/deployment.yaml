@@ -8,7 +8,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: app
-          image: todo-api
+          image: todo-api-image
           ports:
             - containerPort: 8080
               name: http

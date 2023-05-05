@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/WesleyKlop/todo-api/v2/internal/todos"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"github.com/wesleyklop/todo-api/v2/internal/todos"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
