@@ -34,5 +34,9 @@ func NewTodoRouter(router *gin.RouterGroup, repo *TodoRepository) *gin.RouterGro
 		repo.Clear()
 		ctx.Status(http.StatusOK)
 	})
+	router.DELETE("/:todo", func(ctx *gin.Context) {
+		repo.Remove(ctx.Param("todo"))
+		ctx.Status(http.StatusOK)
+	})
 	return router
 }

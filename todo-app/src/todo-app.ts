@@ -15,13 +15,34 @@ export class TodoApp extends LitElement {
   render() {
     return html`
       <ul>
-        ${map(this.todos, (todo: Todo) => html`<li>${todo.content}</li>`)}
+        ${map(
+          this.todos,
+          (todo: Todo) => html`
+            <li style="display: flex; gap: 1rem; align-items: center">
+              <p>${todo.content}</p>
+              <button type="button" @click=${() => this.deleteTodo(todo.id)}>
+                x
+              </button>
+            </li>
+          `
+        )}
       </ul>
       <form method="POST" @submit=${this.submitTodo}>
         <input type="text" name="content" />
         <button type="submit">maak todo</button>
       </form>
     `;
+  }
+
+  async deleteTodo(id: string) {
+    const response = await fetch(`/api/todos/${id}`, {
+      method: "DELETE",
+      headers: {
+        accept: "application/json",
+      },
+    });
+    console.log(response);
+    await this.fetchTodos();
   }
 
   submitTodo(evt: SubmitEvent) {

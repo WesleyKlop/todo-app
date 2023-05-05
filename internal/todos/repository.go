@@ -21,15 +21,35 @@ func (r *TodoRepository) List() *[]Todo {
 	return &r.store
 }
 
-func (r *TodoRepository) Get(id string) *Todo {
-	for _, todo := range r.store {
+func (r *TodoRepository) getIdx(id string) int {
+	for idx, todo := range r.store {
 		if todo.Id == id {
-			return &todo
+			return idx
 		}
+	}
+	return -1
+}
+
+func (r *TodoRepository) Get(id string) *Todo {
+	idx := r.getIdx(id)
+	if idx >= 0 {
+		return &r.store[idx]
 	}
 	return nil
 }
 
+func (r *TodoRepository) Remove(id string) {
+	idx := r.getIdx(id)
+	if idx >= 0 {
+		r.store = remove(r.store, idx)
+	}
+}
+
 func (r *TodoRepository) Clear() {
 	r.store = make([]Todo, 0)
+}
+
+func remove[T any](s []T, i int) []T {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
 }
