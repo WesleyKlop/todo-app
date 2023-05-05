@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -72,43 +71,12 @@ func main() {
 	router.Use(ginzap.Ginzap(log, time.RFC3339, false))
 	router.Use(ginzap.RecoveryWithZap(log, true))
 
-	todoList, err := readOrCreateExistingTodos()
+	repository, err := todos.LoadFromFile("/mnt/data/todos.json")
 	if err != nil {
-		log.Fatal("Failed to get or create todo db", zap.Error(err))
+		log.Fatal("Failed to create todo repository", zap.Error(err))
 	}
 
-	router.GET("/ping", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "bas")
-	})
-	router.GET("/api/todos", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, todoList)
-	})
-	router.GET("/api/todos/:todo", func(ctx *gin.Context) {
-		todoId := ctx.Param("todo")
-		for _, todo := range *todoList {
-			if todo.Id == todoId {
-				ctx.JSON(http.StatusOK, todo)
-				return
-			}
-		}
-		ctx.AbortWithStatus(http.StatusNotFound)
-	})
-	router.POST("/api/todos", func(ctx *gin.Context) {
-		var todo todos.RawTodo
-		if err := ctx.ShouldBindJSON(&todo); err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		newTodo := todo.Create()
-		*todoList = append(*todoList, newTodo)
-
-		ctx.Header("location", fmt.Sprintf("/api/todos/%s", newTodo.Id))
-		ctx.JSON(http.StatusCreated, gin.H{"status": "todo created"})
-	})
-	router.DELETE("/api/todos", func(ctx *gin.Context) {
-		todoList = &[]todos.Todo{}
-		ctx.Status(http.StatusOK)
-	})
+	todos.NewTodoRouter(router.Group("/api/todos"), repository)
 
 	service := http.Server{
 		ReadHeaderTimeout: time.Second * 10,
@@ -127,7 +95,7 @@ func main() {
 	stop()
 
 	log.Info("shutting down gracefully... saving todos...")
-	_ = saveExistingTodos(todoList)
+	todos.PersistToFile(repository, "/mnt/data/todos.json")
 
 	shutdownTime := 5 * time.Second
 	if mode, exists := os.LookupEnv("MODE"); exists && mode == "development" {
