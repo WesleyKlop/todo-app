@@ -3,9 +3,16 @@ kind: Pod
 metadata:
   name: todo-api
 spec:
+  automountServiceAccountToken: false
   containers:
     - name: app
       image: todo-api
       ports:
         - containerPort: 8080
           name: http
+      resources:
+        requests:
+          cpu: 10m
+        limits:
+          cpu: 500m
+          memory: 250Mi
