@@ -38,5 +38,20 @@ func NewTodoRouter(router *gin.RouterGroup, repo *TodoRepository) *gin.RouterGro
 		repo.Remove(ctx.Param("todo"))
 		ctx.Status(http.StatusOK)
 	})
+	router.PATCH("/:todo", func(ctx *gin.Context) {
+		var patch PatchTodo
+		if err := ctx.ShouldBindJSON(&patch); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		todo := repo.Get(ctx.Param("todo"))
+		if todo == nil {
+			ctx.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+		todo.Patch(patch)
+		repo.Update(*todo)
+		ctx.JSON(http.StatusOK, todo)
+	})
 	return router
 }

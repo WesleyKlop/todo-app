@@ -5,6 +5,7 @@ import { map } from "lit/directives/map.js";
 type Todo = {
   content: string;
   id: string;
+  done: boolean;
 };
 
 @customElement("todo-app")
@@ -19,6 +20,12 @@ export class TodoApp extends LitElement {
           this.todos,
           (todo: Todo) => html`
             <li style="display: flex; gap: 1rem; align-items: center">
+              <button
+                type="button"
+                @click=${() => this.toggleTodo(todo.id, !todo.done)}
+              >
+                ${todo.done ? "✅" : "❎"}
+              </button>
               <p>${todo.content}</p>
               <button type="button" @click=${() => this.deleteTodo(todo.id)}>
                 x
@@ -32,6 +39,18 @@ export class TodoApp extends LitElement {
         <button type="submit">maak todo</button>
       </form>
     `;
+  }
+  async toggleTodo(id: string, done: boolean) {
+    const response = await fetch(`/api/todos/${id}`, {
+      method: "PATCH",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ done }),
+    });
+    console.log(response);
+    await this.fetchTodos();
   }
 
   async deleteTodo(id: string) {

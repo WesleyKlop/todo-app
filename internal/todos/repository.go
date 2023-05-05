@@ -45,6 +45,19 @@ func (r *TodoRepository) Remove(id string) {
 	}
 }
 
+func (r *TodoRepository) Update(todo Todo) bool {
+	idx := r.getIdx(todo.Id)
+	if idx >= 0 {
+		r.store[idx] = todo
+		return true
+	}
+	return false
+}
+
+func (r *TodoRepository) Exists(id string) bool {
+	return r.getIdx(id) >= 0
+}
+
 func (r *TodoRepository) Clear() {
 	r.store = make([]Todo, 0)
 }
